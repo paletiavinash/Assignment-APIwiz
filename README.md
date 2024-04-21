@@ -3,7 +3,7 @@
 # 1.Linux
  1. Provide steps to create a directory inside a directory where the parent directory does not exist
     ```
-    mkdir -p /path/to/parent/directory/child_directory
+    mkdir -p /path_to_parent_directory/child_directory
     
     ```
     
@@ -16,6 +16,7 @@
    ```
    sudo dpkg -i package_name.deb  # For Debian-based systems 
    sudo yum install package_name.rpm  # For RedHat-based systems
+   sudo rpm -i Filename.rpm
    ```
       
   3. How to access specific folders of Server A from Server B and Server C?
