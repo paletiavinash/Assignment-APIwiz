@@ -64,7 +64,7 @@ fi
 
 2. Write a Dockerfile for a sample Java/Python application
 
-   ```
+   ```dockerfile
    FROM openjdk:11-jdk
    WORKDIR /app
    COPY target/my-java-app.jar /app
@@ -108,7 +108,7 @@ fi
 4. Create a pod with the above created custom image when a pod dies k8s should automatically restart
    
     To create a pod with the custom image you built and have Kubernetes automatically restart it on failure, you can use a Deployment resource. Here's an example YAML manifest:
-    ```
+    ```yml
             apiVersion: apps/v1
             kind: Deployment
             metadata:
@@ -133,7 +133,7 @@ fi
    
    To access your custom application running in a pod with a specific port, you can expose the application using a Service resource. Here's an example YAML definition for a Service of type    NodePort:
 
-   ```
+   ```yml
    apiVersion: v1
       kind: Service
       metadata:
@@ -154,7 +154,41 @@ fi
 
 ## Jenkins Pipeline for Building, Testing, Dockerizing, Publishing, and Deploying to Kubernetes:
 
-```
+
+### Objectives:
+
+Set up an automated pipeline in Jenkins to:
+
+Checkout code from a public GitHub repository (https://github.com/paletiavinash/wizdesk).
+
+Optionally perform build and testing steps specific to the application.
+
+Build a Docker image for the application.
+
+Optionally push the image to a Docker registry.
+
+Deploy the application to a Kubernetes cluster.
+
+### Prerequisites:
+
+Jenkins server accessible.
+
+Kubernetes cluster configured.
+
+Docker installed and configured on Jenkins server (if building image on Jenkins).
+
+Git plugin installed on Jenkins.
+
+Kubernetes plugin installed on Jenkins.
+
+Access credentials configured in Jenkins for:
+
+GitHub repository
+
+Kubernetes cluster (if pushing Docker image)
+
+
+```groovy
 pipeline {
     agent any
 
@@ -213,5 +247,111 @@ pipeline {
             }
         }
     }
+}
+```
+<div align="center">
+  <img src="./public/Jenkins.png" alt="Logo" width="100%" height="100%">
+
+  <br>
+  <a href="http://netflix-clone-with-tmdb-using-react-mui.vercel.app/">
+    <img src="./public/build.png" alt="Logo" width="100%" height="100%">
+  </a>
+</div>
+
+## Automation of Spinning up Network and Virtual Machines on AWS and Installing Nginx
+
+Spin up Network and Virtual Machines:
+
+Use Terraform to define the AWS infrastructure (VPC, subnets, security groups, etc.) and EC2 instances.
+
+Write Terraform scripts (*.tf files) to describe the desired infrastructure configuration.
+
+Use the terraform CLI or Terraform plugins in Jenkins to apply these scripts and provision the infrastructure.
+
+Github repo https://github.com/paletiavinash/4.2/
+  
+
+``` main.tf
+terraform {
+  required_version = ">= 0.14"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 4.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = "ap-south-1"
+}
+
+resource "aws_vpc" "my_vpc" {
+  cidr_block = "10.0.0.0/16"
+  enable_dns_support = true
+  enable_dns_hostnames = true
+}
+
+resource "aws_internet_gateway" "my_igw" {
+  vpc_id = aws_vpc.my_vpc.id
+}
+
+resource "aws_subnet" "my_subnet" {
+  vpc_id     = aws_vpc.my_vpc.id
+  cidr_block = "10.0.1.0/24"
+  availability_zone = "ap-south-1a"
+  map_public_ip_on_launch = true
+}
+
+resource "aws_route_table" "my_route_table" {
+  vpc_id = aws_vpc.my_vpc.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.my_igw.id
+  }
+}
+
+resource "aws_route_table_association" "subnet_association" {
+  subnet_id      = aws_subnet.my_subnet.id
+  route_table_id = aws_route_table.my_route_table.id
+}
+
+resource "aws_security_group" "nginx_sg" {
+  vpc_id = aws_vpc.my_vpc.id
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_instance" "my_ec2_instance" {
+  ami           = "ami-001843b876406202a"
+  instance_type = "t2.micro"
+  subnet_id     = aws_subnet.my_subnet.id
+  security_groups = ["aws_security_group.web_server.id"]
+
+  tags = {
+    Name = "MyEC2Instance"
+  }
+
+  user_data = <<-EOF
+              #!/bin/bash
+              yum update -y
+              yum install nginx -y
+              systemctl start nginx
+              systemctl enable nginx
+              EOF
 }
 ```
