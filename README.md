@@ -147,3 +147,71 @@ fi
         selector:
           app: my-app
     ```
+
+
+# 4.CI/CD
+1. Set up a pipeline (Github actions/Gitlab runner/ Jenkins or any open source tool) to build, test, create a docker image, publish and deploy to k8s. Use the application present in this public repo https://github.com/apiwizlabs/wizdesk. 2. Automate to spin up a network and virtual machines. Install the Nginx package and start the service(any cloud) 
+
+## Jenkins Pipeline for Building, Testing, Dockerizing, Publishing, and Deploying to Kubernetes:
+
+```
+pipeline {
+    agent any
+
+    tools {
+        nodejs 'node20'
+    }
+   
+    environment {
+        PATH = "/home/ubuntu/bin:$PATH"
+    }
+
+    stages {
+        stage('code-checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/paletiavinash/wizdesk'
+            }
+        }
+        stage('node-dependencies') {
+            steps {
+                sh "npm install"
+            }
+        }
+        stage('npm-build') {
+            steps {
+                script {
+                    sh 'CI="" npm run build'
+                }
+            }
+        }
+        stage('docker-build and push') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {
+                        sh 'docker build -t yuviavinash/wizdesk:v1 .'
+                        sh 'docker push yuviavinash/wizdesk:v1'
+                    }
+                }
+            }
+        }
+        stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    withKubeConfig(
+                        caCertificate: '',
+                        clusterName: '',
+                        contextName: '',
+                        credentialsId: 'k8s',
+                        namespace: '',
+                        restrictKubeConfigAccess: false,
+                        serverUrl: ''
+                    ) {
+                        sh 'kubectl apply -f wiz-deploy.yaml'
+                        sh 'kubectl apply -f wiz-svc.yaml'
+                    }
+                }
+            }
+        }
+    }
+}
+```
